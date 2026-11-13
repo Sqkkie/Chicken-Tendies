@@ -42,8 +42,18 @@ jobs:
           cp -R "$LATEST" "$HOME/theos/sdks/"
 
       - name: Build (rootless, arm64 + arm64e)
+        shell: bash
         working-directory: ${{ env.PROJECT }}
-        run: gmake package FINALPACKAGE=1
+        run: |
+          set -o pipefail
+          gmake package FINALPACKAGE=1 2>&1 | tee build.log
+
+      - name: Show compiler errors
+        if: failure()
+        shell: bash
+        working-directory: ${{ env.PROJECT }}
+        run: |
+          grep -E "error|Error|not found|No such" build.log | head -15 | while IFS= read -r l; do echo "::error::${l}"; done
 
       - uses: actions/upload-artifact@v4
         with:
