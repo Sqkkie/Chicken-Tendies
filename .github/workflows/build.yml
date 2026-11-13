@@ -21,6 +21,8 @@ jobs:
           TWEAK=$(find . -name Tweak.x -not -path "./.git/*" | head -n1)
           if [ -z "$TWEAK" ]; then echo "Tweak.x not found"; exit 1; fi
           DIR=$(dirname "$TWEAK")
+          DIR="${DIR#./}"
+          if [ "$DIR" = "." ]; then echo "PROJECT=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"; echo "Project folder: root"; exit 0; fi
           echo "Project folder: $DIR"
           echo "PROJECT=$GITHUB_WORKSPACE/$DIR" >> "$GITHUB_ENV"
 
