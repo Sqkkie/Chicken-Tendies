@@ -1,0 +1,51 @@
+name: Build Chicken Tendies .deb
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unpack ChickenTendies.zip if it was uploaded as a zip
+        run: |
+          if [ -f ChickenTendies.zip ]; then
+            mkdir -p _unzipped
+            unzip -q -o ChickenTendies.zip -d _unzipped
+          fi
+
+      - name: Locate project folder
+        run: |
+          TWEAK=$(find . -name Tweak.x -not -path "./.git/*" | head -n1)
+          if [ -z "$TWEAK" ]; then echo "Tweak.x not found"; exit 1; fi
+          DIR=$(dirname "$TWEAK")
+          echo "Project folder: $DIR"
+          echo "PROJECT=$GITHUB_WORKSPACE/$DIR" >> "$GITHUB_ENV"
+
+      - name: Install tools
+        run: brew install ldid dpkg make
+
+      - name: Install Theos
+        run: |
+          git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
+          echo "THEOS=$HOME/theos" >> "$GITHUB_ENV"
+
+      - name: Install iOS SDK
+        run: |
+          cd "$HOME"
+          curl -sL https://github.com/theos/sdks/archive/refs/heads/master.zip -o sdks.zip
+          unzip -q sdks.zip
+          LATEST=$(ls -d sdks-master/iPhoneOS*.sdk | sort -V | tail -n1)
+          echo "Using $LATEST"
+          cp -R "$LATEST" "$HOME/theos/sdks/"
+
+      - name: Build (rootless, arm64 + arm64e)
+        working-directory: ${{ env.PROJECT }}
+        run: gmake package FINALPACKAGE=1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ChickenTendies-deb
+          path: ${{ env.PROJECT }}/packages/*.deb
