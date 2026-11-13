@@ -34,12 +34,9 @@ jobs:
 
       - name: Install iOS SDK
         run: |
-          cd "$HOME"
-          curl -sL https://github.com/theos/sdks/archive/refs/heads/master.zip -o sdks.zip
-          unzip -q sdks.zip
-          LATEST=$(ls -d sdks-master/iPhoneOS*.sdk | sort -V | tail -n1)
-          echo "Using $LATEST"
-          cp -R "$LATEST" "$HOME/theos/sdks/"
+          rm -rf "$HOME/theos/sdks"
+          git clone --depth=1 https://github.com/theos/sdks.git "$HOME/theos/sdks"
+          ls "$HOME/theos/sdks"
 
       - name: Build (rootless, arm64 + arm64e)
         shell: bash
@@ -53,6 +50,7 @@ jobs:
         shell: bash
         working-directory: ${{ env.PROJECT }}
         run: |
+          [ -f build.log ] || exit 0
           grep -E "error|Error|not found|No such" build.log | head -15 | while IFS= read -r l; do echo "::error::${l}"; done
 
       - uses: actions/upload-artifact@v4
